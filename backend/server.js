@@ -39,23 +39,6 @@ app.use(
 
 app.use(express.json());
 
-// Database connection middleware for Vercel serverless environment
-let isConnected = false;
-app.use(async (req, res, next) => {
-  if (process.env.VERCEL) {
-    if (!isConnected) {
-      try {
-        await connectDatabase();
-        isConnected = true;
-      } catch (err) {
-        console.error('Vercel serverless database connection error:', err.message);
-        return next(err);
-      }
-    }
-  }
-  next();
-});
-
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'MakeIT API is running', database: process.env.MONGODB_DB_NAME || 'makeit' });
 });
@@ -82,17 +65,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Only start port listener if not running in a Vercel serverless environment
-if (!process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  connectDatabase()
-    .then(() => {
-      app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    })
-    .catch((err) => {
-      console.error('Database connection error:', err.message);
-      process.exit(1);
-    });
-}
+const PORT = process.env.PORT || 5000;
+
+connectDatabase()
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error('Database connection error:', err.message);
+    process.exit(1);
+  });
 
 export default app;
